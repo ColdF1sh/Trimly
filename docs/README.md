@@ -24,22 +24,155 @@ Trimly - це Android-додаток, який дозволяє користув
 
 ## Налаштування проекту
 
-1. Склонуйте репозиторій:
-```bash
-git clone [URL репозиторію]
-```
+## Необхідне програмне забезпечення
 
-2. Відкрийте проект в Android Studio
+1. **Java Development Kit (JDK)**
+   - Завантажте та встановіть JDK 11 з [офіційного сайту Oracle](https://www.oracle.com/java/technologies/javase/jdk11-archive-downloads.html)
+   - Встановіть змінну середовища JAVA_HOME, що вказує на директорію встановлення JDK
 
-3. Налаштуйте Google Maps API:
-   - Додайте свій API ключ в `local.properties`:
-   ```properties
-   MAPS_API_KEY=ваш_api_ключ
+2. **Android Studio**
+   - Завантажте Android Studio з [офіційного сайту](https://developer.android.com/studio)
+   - Встановіть Android Studio з усіма компонентами за замовчуванням
+   - Під час встановлення встановіть:
+     - Android SDK
+     - Android SDK Platform
+     - Android Virtual Device
+
+3. **Git**
+   - Завантажте та встановіть Git з [офіційного сайту](https://git-scm.com/downloads)
+   - Налаштуйте глобальні параметри Git:
+     ```bash
+     git config --global user.name "Ваше ім'я"
+     git config --global user.email "ваш.email@example.com"
+     ```
+
+## Клонування проекту
+
+1. Створіть робочу директорію для проектів:
+   ```bash
+   mkdir ~/AndroidProjects
+   cd ~/AndroidProjects
    ```
 
-4. Синхронізуйте проект з Gradle файлами
+2. Клонуйте репозиторій:
+   ```bash
+   git clone https://github.com/yourusername/trimly.git
+   cd trimly
+   ```
 
-5. Запустіть проект
+## Налаштування середовища розробки
+
+1. Відкрийте проект в Android Studio:
+   - Запустіть Android Studio
+   - Виберіть "Open an existing project"
+   - Виберіть директорію проекту
+
+2. Налаштуйте Android SDK:
+   - Відкрийте File -> Settings -> Appearance & Behavior -> System Settings -> Android SDK
+   - Встановіть SDK Platform для Android 34 (API 34)
+   - Встановіть Android SDK Build-Tools
+   - Встановіть Android SDK Platform-Tools
+
+3. Налаштуйте віртуальний пристрій (AVD):
+   - Відкрийте Tools -> Device Manager
+   - Натисніть "Create Device"
+   - Виберіть Pixel 6
+   - Виберіть Android 34 (API 34)
+   - Завершіть створення AVD
+
+## Встановлення залежностей
+
+1. Синхронізуйте проект з Gradle:
+   - Android Studio автоматично почне синхронізацію
+   - Або виконайте вручну: File -> Sync Project with Gradle Files
+
+2. Встановіть залежності:
+   ```bash
+   ./gradlew build
+   ```
+
+## Налаштування Google Maps API
+
+1. Отримайте API ключ:
+   - Перейдіть на [Google Cloud Console](https://console.cloud.google.com/)
+   - Створіть новий проект
+   - Увімкніть Maps SDK for Android
+   - Створіть API ключ
+
+2. Налаштуйте API ключ:
+   - Відкрийте файл `app/src/main/AndroidManifest.xml`
+   - Знайдіть секцію з API ключем
+   - Замініть `YOUR_API_KEY` на ваш ключ
+
+## Запуск проекту
+
+1. Запустіть емулятор:
+   - Відкрийте Device Manager
+   - Запустіть створений AVD
+
+2. Запустіть проект:
+   - Натисніть кнопку "Run" (зелена стрілка)
+   - Або виконайте:
+     ```bash
+     ./gradlew installDebug
+     ```
+
+## Базові команди
+
+```bash
+# Очищення проекту
+./gradlew clean
+
+# Збірка проекту
+./gradlew build
+
+# Запуск тестів
+./gradlew test
+
+# Запуск lint
+./gradlew lint
+
+# Форматування коду
+./gradlew ktlintFormat
+
+# Генерація документації
+./gradlew dokkaHtml
+```
+
+## Рекомендації
+
+1. **Стиль коду**
+   - Дотримуйтесь [офіційних рекомендацій Kotlin](https://kotlinlang.org/docs/coding-conventions.html)
+   - Використовуйте ktlint для форматування коду
+
+2. **Версіонування**
+   - Створюйте нові гілки для кожної функції
+   - Назви гілок повинні відповідати шаблону: `feature/назва-функції`
+
+3. **Коміти**
+   - Пишіть зрозумілі повідомлення комітів
+   - Використовуйте [Conventional Commits](https://www.conventionalcommits.org/)
+
+4. **Документація**
+   - Документуйте новий код за допомогою KDoc
+   - Оновлюйте документацію при зміні API
+
+## Поширені проблеми та їх вирішення
+
+1. **Проблеми з Gradle**
+   - Видаліть директорію `.gradle`
+   - Виконайте `./gradlew clean`
+   - Перезапустіть Android Studio
+
+2. **Проблеми з емулятором**
+   - Перевірте налаштування HAXM
+   - Спробуйте створити новий AVD
+   - Перевірте налаштування BIOS для віртуалізації
+
+3. **Проблеми з API ключем**
+   - Перевірте обмеження API ключа
+   - Переконайтеся, що SHA-1 відбиток правильно налаштований
+   - Перевірте налаштування біллінгу в Google Cloud Console
 
 ## Основні функції
 
