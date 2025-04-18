@@ -126,49 +126,85 @@ charset = utf-8
    - Ефективне використання пам'яті
    - Асинхронні операції
 
-## Приклади виправлення проблем
+# Приклади виправлення проблем
 
-1. **Проблема:** Занадто довгі рядки коду
-   ```kotlin
-   // До
-   val result = someVeryLongFunctionName(withManyParameters, andAnotherParameter, andOneMoreParameter, andFinalParameter)
-   
-   // Після
-   val result = someVeryLongFunctionName(
-       withManyParameters,
-       andAnotherParameter,
-       andOneMoreParameter,
-       andFinalParameter
-   )
-   ```
+## 1. Проблема з форматуванням коду
 
-2. **Проблема:** Відсутність фінального переносу рядка
-   ```kotlin
-   // До
-   class MyClass {
-       fun myFunction() {
-           // ...
-       }
-   }
-   
-   // Після
-   class MyClass {
-       fun myFunction() {
-           // ...
-       }
-   }
-   ```
+### Проблема
+```kotlin
+fun processData(data:List<String>){
+    for(item in data){
+        println(item)
+    }
+}
+```
 
-3. **Проблема:** Зайві пробіли
-   ```kotlin
-   // До
-   val x = 1  
-   val y = 2  
-   
-   // Після
-   val x = 1
-   val y = 2
-   ```
+### Рішення
+```kotlin
+fun processData(data: List<String>) {
+    for (item in data) {
+        println(item)
+    }
+}
+```
+
+## 2. Проблема з невикористаними імпортами
+
+### До виправлення
+```kotlin
+import android.content.Context
+import android.os.Bundle
+import androidx.appcompat.app.AppCompatActivity
+import com.example.trimly.R
+import java.util.* // Невикористаний імпорт
+
+class MainActivity : AppCompatActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_main)
+    }
+}
+```
+
+### Після виправлення
+```kotlin
+import android.os.Bundle
+import androidx.appcompat.app.AppCompatActivity
+import com.example.trimly.R
+
+class MainActivity : AppCompatActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_main)
+    }
+}
+```
+
+## 3. Проблема з небезпечними операціями з null
+
+### До виправлення
+```kotlin
+fun processUserData(user: User?) {
+    val name = user.name // Можливий NPE
+    val email = user.email // Можливий NPE
+    
+    println("Name: $name, Email: $email")
+}
+```
+
+### Після виправлення
+```kotlin
+fun processUserData(user: User?) {
+    user?.let { safeUser ->
+        val name = safeUser.name
+        val email = safeUser.email
+        
+        println("Name: $name, Email: $email")
+    } ?: run {
+        println("User is null")
+    }
+}
+``` 
 
 ## Рекомендації
 
