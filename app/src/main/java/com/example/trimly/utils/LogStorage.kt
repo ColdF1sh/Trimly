@@ -1,121 +1,106 @@
 package com.example.trimly.utils
 
 import android.content.Context
-import android.util.Log
+import android.os.Environment
+import com.example.trimly.utils.Logging
 import java.io.File
-import java.io.FileOutputStream
-import java.io.FileReader
 import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
+import java.util.*
 
 /**
- * Клас для зберігання логів між сеансами
+ * Клас для зберігання логів додатку.
+ * 
+ * Зберігає логи у файловій системі та надає методи для їх отримання.
+ * 
+ * @property context Контекст додатку
  */
-object LogStorage {
-    private const val LOG_DIR = "logs"
-    private const val MAX_LOG_FILES = 5
-    private const val MAX_LOG_SIZE = 1024 * 1024 // 1MB
-    
-    private lateinit var logDir: File
-    
-    /**
-     * Ініціалізація сховища логів
-     */
-    fun init(context: Context) {
-        logDir = File(context.filesDir, LOG_DIR)
+class LogStorage(private val context: Context) {
+    private val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+    private val logDir: File
+        get() = File(context.getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS), "logs")
+
+    init {
         if (!logDir.exists()) {
             logDir.mkdirs()
         }
-        
-        // Очищення старих логів
-        cleanupOldLogs()
     }
-    
+
     /**
-     * Збереження логу
-     * @param level рівень логу
-     * @param tag тег
-     * @param message повідомлення
-     * @param throwable виняток (опціонально)
+     * Отримує файл логу для поточної дати.
+     * 
+     * @return Файл логу
      */
-    fun saveLog(level: Int, tag: String, message: String, throwable: Throwable? = null) {
+    private fun getLogFile(): File {
+        val fileName = "log_${dateFormat.format(Date())}.txt"
+        return File(logDir, fileName)
+    }
+
+    /**
+     * Додає запис до логу.
+     * 
+     * @param message Повідомлення для логування
+     */
+    fun appendLog(message: String) {
         try {
-            val currentLogFile = getCurrentLogFile()
-            val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.getDefault())
-                .format(Date())
+            val logFile = getLogFile()
+            val timestamp = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
+            val logMessage = "[$timestamp] $message\n"
             
-            val logEntry = buildString {
-                append("$timestamp [${getLevelString(level)}] $tag: $message")
-                throwable?.let {
-                    append("\n${Log.getStackTraceString(it)}")
+            logFile.appendText(logMessage)
+            Logging.d("Log appended: $message")
+        } catch (e: Exception) {
+            Logging.e("Failed to append log", e)
+        }
+    }
+
+    /**
+     * Отримує всі логи за вказану дату.
+     * 
+     * @param date Дата логів
+     * @return Список записів логу
+     */
+    fun getLogs(date: Date): List<String> {
+        val fileName = "log_${dateFormat.format(date)}.txt"
+        val file = File(logDir, fileName)
+        
+        return if (file.exists()) {
+            try {
+                file.readLines()
+            } catch (e: Exception) {
+                Logging.e("Failed to read logs", e)
+                emptyList()
+            }
+        } else {
+            emptyList()
+        }
+    }
+
+    /**
+     * Очищає старі логи.
+     * 
+     * @param daysToKeep Кількість днів, за які зберігати логи
+     */
+    fun cleanupOldLogs(daysToKeep: Int) {
+        try {
+            val cutoffDate = Calendar.getInstance().apply {
+                add(Calendar.DAY_OF_YEAR, -daysToKeep)
+            }.time
+
+            logDir.listFiles()?.forEach { file ->
+                val fileName = file.name
+                if (fileName.startsWith("log_")) {
+                    val dateStr = fileName.substring(4, 14)
+                    val fileDate = dateFormat.parse(dateStr)
+                    
+                    if (fileDate != null && fileDate.before(cutoffDate)) {
+                        if (file.delete()) {
+                            Logging.d("Deleted old log file: ${file.name}")
+                        }
+                    }
                 }
-                append("\n")
-            }
-            
-            FileOutputStream(currentLogFile, true).use { output ->
-                output.write(logEntry.toByteArray())
-            }
-            
-            // Перевірка розміру файлу
-            if (currentLogFile.length() > MAX_LOG_SIZE) {
-                rotateLogs()
             }
         } catch (e: Exception) {
-            Timber.e(e, "Failed to save log")
+            Logging.e("Failed to cleanup old logs", e)
         }
-    }
-    
-    /**
-     * Отримання всіх збережених логів
-     */
-    fun getStoredLogs(): List<String> {
-        val logs = mutableListOf<String>()
-        logDir.listFiles()?.sortedBy { it.lastModified() }?.forEach { file ->
-            try {
-                FileReader(file).use { reader ->
-                    logs.add(reader.readText())
-                }
-            } catch (e: Exception) {
-                Timber.e(e, "Failed to read log file: ${file.name}")
-            }
-        }
-        return logs
-    }
-    
-    /**
-     * Очищення всіх логів
-     */
-    fun clearLogs() {
-        logDir.listFiles()?.forEach { it.delete() }
-    }
-    
-    private fun getCurrentLogFile(): File {
-        val date = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
-        return File(logDir, "log_$date.txt")
-    }
-    
-    private fun rotateLogs() {
-        val files = logDir.listFiles()?.sortedBy { it.lastModified() } ?: return
-        if (files.size >= MAX_LOG_FILES) {
-            files.first().delete()
-        }
-    }
-    
-    private fun cleanupOldLogs() {
-        val files = logDir.listFiles()?.sortedBy { it.lastModified() } ?: return
-        if (files.size > MAX_LOG_FILES) {
-            files.take(files.size - MAX_LOG_FILES).forEach { it.delete() }
-        }
-    }
-    
-    private fun getLevelString(level: Int): String = when (level) {
-        Log.VERBOSE -> "V"
-        Log.DEBUG -> "D"
-        Log.INFO -> "I"
-        Log.WARN -> "W"
-        Log.ERROR -> "E"
-        Log.ASSERT -> "A"
-        else -> "?"
     }
 } 

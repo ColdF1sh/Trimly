@@ -186,9 +186,3 @@ charset = utf-8
    - Використовувати pre-commit hooks
    - Налаштувати автоматичне форматування
    - Інтегрувати з IDE
-
-## Корисні посилання
-
-- [Документація ktlint](https://github.com/pinterest/ktlint)
-- [Правила форматування Kotlin](https://kotlinlang.org/docs/coding-conventions.html)
-- [Android Code Style](https://source.android.com/setup/contribute/code-style) 

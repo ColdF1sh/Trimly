@@ -2,16 +2,23 @@ package com.example.trimly
 
 import android.app.Application
 import com.example.trimly.utils.Logging
+import timber.log.Timber
 
+/**
+ * Головний клас додатку.
+ * 
+ * Ініціалізує основні компоненти та налаштування.
+ */
 class TrimlyApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         
-        // Ініціалізуємо логування
-        // В режимі відладки (BuildConfig.DEBUG == true) буде використовуватися DebugTree
-        // В продакшн режимі - CrashReportingTree
-        Logging.init(this, BuildConfig.DEBUG)
+        // Ініціалізація логування
+        Logging.init(BuildConfig.DEBUG)
         
-        Timber.i("Application started")
+        // Налаштування логування
+        if (BuildConfig.DEBUG) {
+            Timber.plant(Timber.DebugTree())
+        }
     }
 } 
