@@ -89,7 +89,7 @@ tasks.dokkaHtml.configure {
    - Використовуйте Dokka Gradle Plugin
    - Зберігайте згенеровану документацію в артефактах
 
-## Приклад налаштування в build.gradle.kts
+## Налаштування в build.gradle.kts
 
 ```kotlin
 plugins {
@@ -111,9 +111,3 @@ tasks.dokkaHtml.configure {
     }
 }
 ```
-
-## Корисні посилання
-
-- [Документація Dokka](https://kotlin.github.io/dokka/1.9.10/)
-- [KDoc синтаксис](https://kotlinlang.org/docs/kotlin-doc.html)
-- [Приклади документації](https://github.com/Kotlin/dokka/tree/master/examples) 
