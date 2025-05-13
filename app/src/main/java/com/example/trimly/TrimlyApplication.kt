@@ -13,12 +13,10 @@ class TrimlyApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         
-        // Ініціалізація логування
-        Logging.init(BuildConfig.DEBUG)
+        // Initialize logging
+        Logging.init(this, BuildConfig.DEBUG)
         
-        // Налаштування логування
-        if (BuildConfig.DEBUG) {
-            Timber.plant(Timber.DebugTree())
-        }
+        // Log application start
+        Timber.i("Application started")
     }
 } 

@@ -45,4 +45,13 @@
 
     </com.google.android.material.card.MaterialCardView>
 
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/locationFab"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="24dp"
+        android:src="@android:drawable/ic_menu_mylocation"
+        app:backgroundTint="@color/teal_700" />
+
 </androidx.coordinatorlayout.widget.CoordinatorLayout> 

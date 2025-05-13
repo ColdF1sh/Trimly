@@ -57,14 +57,10 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
             .findFragmentById(R.id.map) as SupportMapFragment
         mapFragment.getMapAsync(this)
 
-        // Add location button
-        val locationButton = FloatingActionButton(this).apply {
-            setImageResource(android.R.drawable.ic_menu_mylocation)
-            setOnClickListener {
-                getDeviceLocation()
-            }
+        // Підключення до кнопки з layout
+        binding.locationFab.setOnClickListener {
+            getDeviceLocation()
         }
-        binding.root.addView(locationButton)
 
         getLocationPermission()
     }
@@ -96,8 +92,13 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
 
     override fun onMapReady(googleMap: GoogleMap) {
         map = googleMap
-        updateLocationUI()
-        getDeviceLocation()
+        try {
+            updateLocationUI()
+            getDeviceLocation()
+        } catch (e: Exception) {
+            com.example.trimly.utils.Logging.logError(e, "Map initialization error")
+            Toast.makeText(this, "Помилка завантаження карти", Toast.LENGTH_LONG).show()
+        }
     }
 
     private fun startLocationUpdates() {
