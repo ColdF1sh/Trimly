@@ -1,4 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Trimly</string>
+    <string name="title_profile">Профіль</string>
+    <string name="title_home">Головна</string>
+    <string name="title_bookings">Записи</string>
+    <string name="search_icon">Пошук</string>
+    <string name="location_fab">Пошук геолокації</string>
+    <string name="search_hint">Пошук закладів...</string>
+    <string name="tab_upcoming">Заплановані</string>
+    <string name="tab_history">Історія</string>
+    <string name="empty_upcoming">У вас немає жодного запису</string>
+    <string name="empty_history">Історія записів відсутня</string>
+    <string name="google_maps_key">AIzaSyDpSCrRR4ZFqrm4FAj17FtrjBAfnG-t-4k</string>
 </resources>

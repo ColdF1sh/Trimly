@@ -1,0 +1,149 @@
+DROP TABLE IF EXISTS Appointments;
+DROP TABLE IF EXISTS Reviews;
+DROP TABLE IF EXISTS MasterSessions;
+DROP TABLE IF EXISTS Services;
+DROP TABLE IF EXISTS Masters;
+DROP TABLE IF EXISTS Establishments;
+DROP TABLE IF EXISTS Clients;
+-- DROP TABLE IF EXISTS master_schedule; -- Видаляємо master_schedule, оскільки MasterSessions виконує схожу функцію
+
+-- Створюємо таблицю Клієнтів (Clients)
+CREATE TABLE Clients (
+    clientid INTEGER PRIMARY KEY AUTOINCREMENT,
+    first_name TEXT NOT NULL,
+    last_name TEXT,
+    email TEXT UNIQUE NOT NULL,
+    phone TEXT UNIQUE NOT NULL,
+    rating REAL DEFAULT 5.0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Створюємо таблицю Закладів (Establishments)
+CREATE TABLE Establishments (
+    establishmentid INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    address TEXT NOT NULL,
+    latitude REAL NOT NULL,
+    longitude REAL NOT NULL,
+    phone_number TEXT,
+    website TEXT,
+    description TEXT,
+    rating REAL DEFAULT 5.0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Створюємо таблицю Майстрів (Masters)
+CREATE TABLE Masters (
+    masterid INTEGER PRIMARY KEY AUTOINCREMENT,
+    establishmentid INTEGER NOT NULL,
+    first_name TEXT NOT NULL,
+    last_name TEXT,
+    specialization TEXT,
+    portfoliourl TEXT,
+    rating REAL DEFAULT 5.0,
+    FOREIGN KEY (establishmentid) REFERENCES Establishments (establishmentid) ON DELETE CASCADE
+);
+
+-- Створюємо таблицю Послуг (Services)
+CREATE TABLE Services (
+    serviceid INTEGER PRIMARY KEY AUTOINCREMENT,
+    establishmentid INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    description TEXT,
+    price REAL NOT NULL,
+    duration INTEGER NOT NULL, -- тривалість у хвилинах
+    FOREIGN KEY (establishmentid) REFERENCES Establishments (establishmentid) ON DELETE CASCADE
+);
+
+-- Створюємо таблицю Сесій Майстрів (MasterSessions)
+-- Ця таблиця тепер є основним джерелом інформації про доступність та статус слотів
+CREATE TABLE MasterSessions (
+    sessionid INTEGER PRIMARY KEY AUTOINCREMENT,
+    masterid INTEGER NOT NULL,
+    date TEXT NOT NULL, -- Зберігаємо як TEXT у форматі YYYY-MM-DD
+    start_time TEXT NOT NULL, -- Зберігаємо як TEXT у форматі HH:MM
+    end_time TEXT NOT NULL, -- Зберігаємо як TEXT у форматі HH:MM
+    status TEXT NOT NULL DEFAULT 'PENDING', -- Змінюємо DEFAULT на 'PENDING'
+    CHECK (status IN ('PENDING', 'CONFIRMED', 'CANCELLED', 'COMPLETED')), -- Додаємо перевірку статусу
+    FOREIGN KEY (masterid) REFERENCES Masters (masterid) ON DELETE CASCADE
+);
+
+-- Створюємо таблицю Записів (Appointments)
+-- Тепер вона посилається на MasterSessions
+CREATE TABLE Appointments (
+    appointmentid INTEGER PRIMARY KEY AUTOINCREMENT,
+    clientid INTEGER NOT NULL,
+    sessionid INTEGER NOT NULL, -- Зв'язок з MasterSessions
+    serviceid INTEGER NOT NULL, -- Залишаємо serviceid, щоб знати, на яку послугу записався клієнт
+    establishment_rating INTEGER,
+    master_rating INTEGER,
+    client_rating INTEGER,
+    -- Поля date, time, status прибрані, вони будуть братись з MasterSessions
+    FOREIGN KEY (clientid) REFERENCES Clients (clientid) ON DELETE CASCADE,
+    FOREIGN KEY (sessionid) REFERENCES MasterSessions (sessionid) ON DELETE CASCADE, -- ON DELETE CASCADE, щоб видалити запис, якщо сесія видалена
+    FOREIGN KEY (serviceid) REFERENCES Services (serviceid) ON DELETE CASCADE
+);
+
+-- Створюємо таблицю Відгуків (Reviews)
+CREATE TABLE Reviews (
+    reviewid INTEGER PRIMARY KEY AUTOINCREMENT,
+    clientid INTEGER NOT NULL,
+    establishmentid INTEGER, -- Може бути NULL, якщо відгук тільки про майстра
+    masterid INTEGER, -- Може бути NULL, якщо відгук тільки про заклад
+    client_rating INTEGER CHECK (client_rating BETWEEN 1 AND 5),
+    master_rating INTEGER CHECK (master_rating BETWEEN 1 AND 5),
+    establishment_rating INTEGER CHECK (establishment_rating BETWEEN 1 AND 5),
+    comment TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (clientid) REFERENCES Clients (clientid) ON DELETE CASCADE,
+    FOREIGN KEY (establishmentid) REFERENCES Establishments (establishmentid) ON DELETE SET NULL,
+    FOREIGN KEY (masterid) REFERENCES Masters (masterid) ON DELETE SET NULL
+);
+
+
+INSERT INTO Clients (first_name, last_name, email, phone) VALUES
+('Іван', 'Петренко', 'ivan.petrenko@example.com', '+380501112233'),
+('Олена', 'Коваленко', 'olena.kovalenko@example.com', '+380674445566'),
+('Сергій', 'Сидоренко', 'sergiy.sydorenko@example.com', '+380637778899');
+
+-- Заклади
+INSERT INTO Establishments (name, address, latitude, longitude, phone_number, website, description, rating) VALUES
+('Barber King', 'вул. Соборна, 15', 49.842957, 24.031111, '+380322223344', 'http://barberking.ua', 'Кращий барбершоп у місті.', 4.8),
+('Beauty Salon Lileya', 'пр. Свободи, 20', 49.840000, 24.025000, '+380325556677', 'http://lileya.com.ua', 'Салон краси для жінок та чоловіків.', 4.5);
+
+-- Майстри
+INSERT INTO Masters (establishmentid, first_name, last_name, specialization, portfoliourl, rating) VALUES
+(1, 'Олег', 'Бойко', 'Чоловічі стрижки', 'http://portfolio.barberking.ua/oleg', 4.9),
+(1, 'Андрій', 'Мельник', 'Гоління', NULL, 4.7),
+(2, 'Ірина', 'Шевченко', 'Жіночі стрижки, фарбування', 'http://portfolio.lileya.com.ua/iryna', 4.6),
+(2, 'Віктор', 'Кравець', 'Манікюр, педикюр', NULL, 4.9);
+
+-- Послуги
+INSERT INTO Services (establishmentid, name, description, price, duration) VALUES
+(1, 'Чоловіча стрижка', 'Модельна стрижка для чоловіків', 300.00, 45),
+(1, 'Гоління бороди', 'Класичне гоління небезпечною бритвою', 200.00, 30),
+(2, 'Жіноча стрижка', 'Модельна стрижка для жінок', 400.00, 60),
+(2, 'Фарбування волосся (в 1 тон)', 'Фарбування волосся в один колір', 800.00, 90),
+(2, 'Класичний манікюр', 'Обрізний або європейський манікюр', 250.00, 40);
+
+-- Сесії Майстрів (MasterSessions)
+-- Статус 'PENDING' за замовчуванням означає, що сесія доступна для бронювання
+INSERT INTO MasterSessions (masterid, date, start_time, end_time, status) VALUES
+(1, '2024-12-01', '10:00', '10:45', 'PENDING'), -- Доступна
+(1, '2024-12-01', '11:00', '11:45', 'PENDING'), -- Доступна
+(1, '2024-12-01', '12:00', '12:30', 'CONFIRMED'), -- Заброньована
+(2, '2024-12-01', '10:00', '10:30', 'PENDING'), -- Доступна
+(3, '2024-12-01', '14:00', '15:00', 'PENDING'), -- Доступна
+(3, '2024-11-28', '11:00', '12:00', 'COMPLETED'), -- Завершена (дата в минулому)
+(4, '2024-12-02', '09:00', '09:40', 'PENDING'); -- Доступна
+
+-- Записи (Appointments)
+-- Тепер вони пов'язані з sessionid
+INSERT INTO Appointments (clientid, sessionid, serviceid, establishment_rating, master_rating, client_rating) VALUES
+(1, 3, 1, NULL, NULL, NULL), -- Іван Петренко записався на стрижку (sessionid 3)
+(2, 6, 3, 4, 5, 4); -- Олена Коваленко записувалась на стрижку (sessionid 6 - завершена)
+
+-- Відгуки
+INSERT INTO Reviews (clientid, establishmentid, masterid, client_rating, master_rating, establishment_rating, comment) VALUES
+(2, 2, 3, 4, 5, 4, 'Дуже сподобалася стрижка у Ірини!'),
+(1, 1, NULL, 4, NULL, 4, 'Хороший барбершоп, привітний персонал.');

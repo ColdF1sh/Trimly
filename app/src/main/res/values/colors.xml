@@ -7,4 +7,11 @@
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+    <color name="colorPrimary">#7C3AED</color>
+    <color name="colorPrimaryDark">#5B21B6</color>
+    <color name="colorAccent">#A78BFA</color>
+    <color name="bottom_nav_icon">#7C3AED</color>
+    <color name="bottom_nav_icon_inactive">#BDBDBD</color>
+    <color name="geo_fab">#7C3AED</color>
+    <color name="empty_hint">#BDBDBD</color>
 </resources>
