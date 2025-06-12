@@ -10,10 +10,8 @@ import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.example.trimly.R
-import java.io.Serializable
 import java.text.SimpleDateFormat
 import java.util.*
-import android.util.Log
 import com.example.trimly.data.DetailedBooking
 import com.example.trimly.data.BookingStatus
 
@@ -36,38 +34,23 @@ class BookingsAdapter(
 
     override fun getItemCount() = bookings.size
 
-    fun updateList(newList: List<DetailedBooking>) {
-        bookings.clear()
-        bookings.addAll(newList)
-        notifyDataSetChanged()
-    }
-
     inner class BookingViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+        private val tvDate: TextView = itemView.findViewById(R.id.tvDate)
+        private val tvTime: TextView = itemView.findViewById(R.id.tvTime)
+        private val tvService: TextView = itemView.findViewById(R.id.tvServiceName)
+        private val tvMaster: TextView = itemView.findViewById(R.id.tvMasterName)
+        private val statusView: TextView = itemView.findViewById(R.id.tvStatus)
+        private val btnCancel: Button = itemView.findViewById(R.id.btnCancel)
+        private val tvExpiredMessage: TextView = itemView.findViewById(R.id.tvExpiredMessage)
+        private val tvSalonName: TextView = itemView.findViewById(R.id.tvSalonName)
+
         fun bind(detailedBooking: DetailedBooking, showCancelButton: Boolean, onStatusChange: (Int, BookingStatus) -> Unit) {
-            itemView.findViewById<TextView>(R.id.tvSalonName).text = detailedBooking.salonName
-            itemView.findViewById<TextView?>(R.id.tvMasterName)?.text = detailedBooking.masterName
-            itemView.findViewById<TextView?>(R.id.tvServiceName)?.text = detailedBooking.serviceName
-
             val dateFormat = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
-            val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
-
-            try {
-                val date = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).parse(detailedBooking.date)
-                val startTime = timeFormat.parse(detailedBooking.startTime)
-                val endTime = timeFormat.parse(detailedBooking.endTime)
-
-                itemView.findViewById<TextView>(R.id.tvDate).text = date?.let { dateFormat.format(it) }
-                itemView.findViewById<TextView>(R.id.tvTime).text = "${timeFormat.format(startTime)}-${timeFormat.format(endTime)}"
-
-            } catch (e: Exception) {
-                Log.e("BookingsAdapter", "Error parsing date or time: ${e.message}")
-                itemView.findViewById<TextView>(R.id.tvDate).text = detailedBooking.date
-                itemView.findViewById<TextView>(R.id.tvTime).text = "${detailedBooking.startTime}-${detailedBooking.endTime}"
-            }
-
-            val statusView = itemView.findViewById<TextView>(R.id.tvStatus)
-            val btnCancel = itemView.findViewById<Button>(R.id.btnCancel)
-            val tvExpiredMessage = itemView.findViewById<TextView>(R.id.tvExpiredMessage)
+            tvDate.text = detailedBooking.date
+            tvTime.text = detailedBooking.startTime
+            tvService.text = detailedBooking.serviceName
+            tvMaster.text = detailedBooking.masterName
+            tvSalonName.text = detailedBooking.salonName
 
             when (detailedBooking.status) {
                 BookingStatus.PENDING -> {

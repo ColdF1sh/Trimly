@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_margin="12dp"
-    app:cardCornerRadius="16dp"
+    android:layout_marginBottom="12dp"
+    app:cardCornerRadius="12dp"
     app:cardElevation="4dp">
 
     <LinearLayout
@@ -24,53 +24,43 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Назва закладу"
-                android:textSize="20sp"
-                android:textStyle="bold" />
+                android:text="Barber King"
+                android:textStyle="bold"
+                android:textSize="18sp"
+                android:textColor="#222" />
 
             <TextView
                 android:id="@+id/tvStatus"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Статус"
-                android:textSize="18sp"
+                android:text="Заплановано"
                 android:textStyle="bold"
-                android:textColor="@android:color/holo_green_dark" />
+                android:textSize="16sp"
+                android:textColor="#388E3C" />
         </LinearLayout>
 
         <TextView
             android:id="@+id/tvMasterName"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Майстер"
-            android:textSize="16sp"
-            android:textColor="@android:color/black"
+            android:text="Олег Бойко"
+            android:textSize="15sp"
+            android:textColor="#222"
             android:layout_marginTop="4dp" />
 
         <TextView
             android:id="@+id/tvServiceName"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Послуга"
-            android:textSize="16sp"
-            android:textColor="@android:color/black"
+            android:text="Чоловіча стрижка"
+            android:textSize="15sp"
+            android:textColor="#222"
             android:layout_marginTop="2dp" />
-
-        <TextView
-            android:id="@+id/tvExpiredMessage"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="Дата запису минула"
-            android:textSize="16sp"
-            android:textColor="@android:color/darker_gray"
-            android:visibility="gone"/>
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:gravity="center_vertical"
             android:layout_marginTop="8dp">
 
             <TextView
@@ -78,26 +68,41 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Дата"
-                android:textSize="18sp"
-                android:textColor="@android:color/darker_gray" />
+                android:text="06.06.2025"
+                android:textSize="14sp"
+                android:textColor="#888" />
 
             <TextView
                 android:id="@+id/tvTime"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Час"
-                android:textSize="18sp"
-                android:textColor="@android:color/darker_gray" />
+                android:text="12:00-12:30"
+                android:textSize="14sp"
+                android:textColor="#888" />
         </LinearLayout>
 
         <Button
             android:id="@+id/btnCancel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="СКАСУВАТИ ЗАПИС"
+            android:textAllCaps="true"
+            android:textColor="#fff"
+            android:backgroundTint="#D32F2F"
+            android:layout_marginTop="12dp"
+            android:layout_marginBottom="4dp" />
+
+        <TextView
+            android:id="@+id/tvExpiredMessage"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:text="Скасувати запис"
+            android:text="Дата запису минула"
+            android:textSize="14sp"
+            android:textColor="#888"
+            android:visibility="gone"
             android:layout_gravity="end"
-            android:visibility="gone"/>
+            android:layout_marginTop="4dp" />
+
     </LinearLayout>
-</androidx.cardview.widget.CardView> 
+
+</com.google.android.material.card.MaterialCardView> 

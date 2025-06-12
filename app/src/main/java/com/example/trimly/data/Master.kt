@@ -1,10 +1,13 @@
 package com.example.trimly.data
 
 data class Master(
-    val masterId: Int,
-    val establishmentId: Int,
-    val name: String,
-    val specialty: String?,
+    val userid: Int,
+    val firstName: String,
+    val lastName: String?,
+    val phone: String,
+    val email: String,
+    val specialization: String?,
     val portfolioUrl: String?,
-    val rating: Double?
+    val rating: Double?,
+    val establishmentId: Int
 ) 

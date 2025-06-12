@@ -58,4 +58,46 @@ class EstablishmentDao(context: Context) {
         Timber.i("Завантаження завершено. Всього закладів: ${establishments.size}")
         return establishments
     }
+
+    fun getEstablishmentsForAdmin(userId: Int): List<Salon> {
+        Timber.i("Починаємо завантаження закладів для адміна $userId з бази даних")
+        val establishments = mutableListOf<Salon>()
+        val query = """
+            SELECT e.establishmentid, e.name, e.address, e.latitude, e.longitude, e.phone_number
+            FROM Establishments e
+            JOIN EstablishmentAdmins ea ON e.establishmentid = ea.establishmentid
+            WHERE ea.userid = ?
+        """.trimIndent()
+        Timber.i("SQL Query: $query")
+        val cursor = dbHelper.rawQuery(query, arrayOf(userId.toString()))
+        Timber.i("Знайдено закладів: ${cursor.count}")
+        if (cursor.moveToFirst()) {
+            val idIndex = cursor.getColumnIndex("establishmentid")
+            val nameIndex = cursor.getColumnIndex("name")
+            val addressIndex = cursor.getColumnIndex("address")
+            val latIndex = cursor.getColumnIndex("latitude")
+            val lngIndex = cursor.getColumnIndex("longitude")
+            val phoneIndex = cursor.getColumnIndex("phone_number")
+            do {
+                val id = if (idIndex != -1) cursor.getInt(idIndex) else 0
+                val name = if (nameIndex != -1) cursor.getString(nameIndex) else "Unknown Salon"
+                val address = if (addressIndex != -1) cursor.getString(addressIndex) else ""
+                val lat = if (latIndex != -1) cursor.getDouble(latIndex) else 0.0
+                val lng = if (lngIndex != -1) cursor.getDouble(lngIndex) else 0.0
+                val phone = if (phoneIndex != -1) cursor.getString(phoneIndex) else ""
+                establishments.add(Salon(name, lat, lng, address, phone, id))
+            } while (cursor.moveToNext())
+        }
+        cursor.close()
+        Timber.i("Завантаження завершено. Всього закладів: ${establishments.size}")
+        return establishments
+    }
+
+    fun getEstablishmentIdForAdmin(userId: Int): Int? {
+        val query = "SELECT establishmentid FROM EstablishmentAdmins WHERE userid = ? LIMIT 1"
+        val cursor = dbHelper.rawQuery(query, arrayOf(userId.toString()))
+        val establishmentId = if (cursor.moveToFirst()) cursor.getInt(cursor.getColumnIndexOrThrow("establishmentid")) else null
+        cursor.close()
+        return establishmentId
+    }
 } 

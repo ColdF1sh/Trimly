@@ -59,4 +59,19 @@ class ServiceDao(context: Context) {
         Timber.i("Завантаження послуг завершено. Всього послуг: ${services.size}")
         return services
     }
+
+    fun insertService(service: Service): Long {
+        val values = android.content.ContentValues().apply {
+            put("establishmentid", service.establishmentId)
+            put("name", service.name)
+            put("description", service.description)
+            put("price", service.price)
+            put("duration", service.duration)
+        }
+        return dbHelper.insert("Services", null, values)
+    }
+
+    fun deleteService(serviceId: Int): Int {
+        return dbHelper.delete("Services", "serviceid = ?", arrayOf(serviceId.toString()))
+    }
 } 

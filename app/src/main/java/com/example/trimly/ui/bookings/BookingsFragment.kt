@@ -33,7 +33,12 @@ class BookingsFragment : Fragment() {
         super.onCreate(savedInstanceState)
         Log.d("BookingsFragment", "onCreate called")
         bookingDao = BookingDao(requireContext())
-        allBookings.addAll(bookingDao.getAllDetailedBookings())
+        val prefs = requireContext().getSharedPreferences("auth", android.content.Context.MODE_PRIVATE)
+        val userid = prefs.getInt("userid", -1)
+        allBookings.clear()
+        if (userid != -1) {
+            allBookings.addAll(bookingDao.getDetailedBookingsForClient(userid))
+        }
         Log.d("BookingsFragment", "Detailed Bookings loaded from DB in onCreate: ${allBookings.size}")
     }
 
@@ -95,7 +100,14 @@ class BookingsFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
-        notifyAllAdapters()
+        // Оновлення вкладки, якщо був створений новий запис
+        val prefs = requireContext().getSharedPreferences("booking_update", android.content.Context.MODE_PRIVATE)
+        if (prefs.getBoolean("should_update_bookings", false)) {
+            notifyAllAdapters()
+            prefs.edit().putBoolean("should_update_bookings", false).apply()
+        } else {
+            notifyAllAdapters()
+        }
     }
 
     fun updateBookingStatus(bookingId: Int, status: BookingStatus) {
@@ -114,8 +126,12 @@ class BookingsFragment : Fragment() {
 
     fun notifyAllAdapters() {
         Log.d("BookingsFragment", "notifyAllAdapters called")
+        val prefs = requireContext().getSharedPreferences("auth", android.content.Context.MODE_PRIVATE)
+        val userid = prefs.getInt("userid", -1)
         allBookings.clear()
-        allBookings.addAll(bookingDao.getAllDetailedBookings())
+        if (userid != -1) {
+            allBookings.addAll(bookingDao.getDetailedBookingsForClient(userid))
+        }
         Log.d("BookingsFragment", "Detailed Bookings reloaded from DB in notifyAllAdapters: ${allBookings.size}")
 
         val currentUpcomingFragment = upcomingFragment

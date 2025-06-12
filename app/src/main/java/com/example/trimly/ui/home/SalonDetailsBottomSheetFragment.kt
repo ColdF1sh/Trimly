@@ -6,30 +6,34 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.TextView
+import androidx.recyclerview.widget.RecyclerView
+import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.trimly.R
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import android.util.DisplayMetrics
 import androidx.navigation.fragment.findNavController
-import android.widget.ImageView
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.libraries.places.api.Places
 import com.google.android.libraries.places.api.model.Place
 import com.google.android.libraries.places.api.model.RectangularBounds
-import com.google.android.libraries.places.api.net.FetchPhotoRequest
 import com.google.android.libraries.places.api.net.FetchPlaceRequest
 import com.google.android.libraries.places.api.net.FindAutocompletePredictionsRequest
 import com.google.android.libraries.places.api.net.PlacesClient
 import android.util.Log
+import android.view.Display
+import android.os.Build
 
 class SalonDetailsBottomSheetFragment : BottomSheetDialogFragment() {
 
     private var salon: Salon? = null
     private lateinit var placesClient: PlacesClient
+    private lateinit var photosRecyclerView: RecyclerView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         arguments?.let {
+            @Suppress("DEPRECATION")
             val serializable = it.getSerializable(ARG_SALON)
             if (serializable is Salon) {
                 salon = serializable
@@ -49,7 +53,11 @@ class SalonDetailsBottomSheetFragment : BottomSheetDialogFragment() {
         super.onViewCreated(view, savedInstanceState)
 
         val displayMetrics = DisplayMetrics()
-        activity?.windowManager?.defaultDisplay?.getMetrics(displayMetrics)
+        val windowManager = requireActivity().windowManager
+        @Suppress("DEPRECATION")
+        val display = windowManager.defaultDisplay
+        @Suppress("DEPRECATION")
+        display.getMetrics(displayMetrics)
         val screenHeight = displayMetrics.heightPixels
         val desiredHeight = (screenHeight * 0.65).toInt()
 
@@ -60,14 +68,13 @@ class SalonDetailsBottomSheetFragment : BottomSheetDialogFragment() {
             state = BottomSheetBehavior.STATE_EXPANDED
         }
 
-        // 1. Ініціалізуємо Places
         if (!Places.isInitialized()) {
             Places.initialize(requireContext().applicationContext, getString(R.string.google_maps_key))
         }
         placesClient = Places.createClient(requireContext())
 
-        val imageView = view.findViewById<ImageView>(R.id.ivSalonPhoto)
-        imageView.setBackgroundColor(resources.getColor(android.R.color.darker_gray))
+        photosRecyclerView = view.findViewById(R.id.rvSalonPhotos)
+        photosRecyclerView.layoutManager = LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
 
         salon?.let { selectedSalon ->
             view.findViewById<TextView>(R.id.tvSalonName).text = selectedSalon.name
@@ -77,7 +84,12 @@ class SalonDetailsBottomSheetFragment : BottomSheetDialogFragment() {
                 text = "Телефон: ${selectedSalon.phone}"
             }
 
-            // Збільшуємо радіус пошуку
+            view.findViewById<Button>(R.id.btnBook).setOnClickListener {
+                val action = HomeFragmentDirections.actionNavigationHomeToBookingFragment(selectedSalon)
+                findNavController().navigate(action)
+                dismiss()
+            }
+
             val bounds = RectangularBounds.newInstance(
                 LatLng(selectedSalon.lat - 0.05, selectedSalon.lng - 0.05),
                 LatLng(selectedSalon.lat + 0.05, selectedSalon.lng + 0.05)
@@ -93,55 +105,33 @@ class SalonDetailsBottomSheetFragment : BottomSheetDialogFragment() {
                     val placeId = prediction?.placeId
                     Log.d("PLACES", "Found placeId: $placeId for ${selectedSalon.name}")
                     if (placeId != null) {
-                        loadPlacePhoto(placeId, imageView)
+                        loadPlacePhotos(placeId)
                     } else {
                         Log.d("PLACES", "No placeId found for ${selectedSalon.name}")
                     }
                 }
                 .addOnFailureListener {
                     Log.d("PLACES", "Error finding placeId: ${it.message}")
-                    imageView.setBackgroundColor(resources.getColor(android.R.color.darker_gray))
                 }
-
-            view.findViewById<Button>(R.id.btnBook).setOnClickListener {
-                val action = HomeFragmentDirections.actionNavigationHomeToBookingFragment(selectedSalon)
-                findNavController().navigate(action)
-                dismiss()
-            }
         }
     }
 
-    private fun loadPlacePhoto(placeId: String, imageView: ImageView) {
+    private fun loadPlacePhotos(placeId: String) {
         val placeFields = listOf(Place.Field.PHOTO_METADATAS)
         val request = FetchPlaceRequest.newInstance(placeId, placeFields)
         placesClient.fetchPlace(request)
             .addOnSuccessListener { response ->
                 val place = response.place
-                val photoMetadata = place.photoMetadatas?.firstOrNull()
-                Log.d("PLACES", "Photo metadata: $photoMetadata")
-                if (photoMetadata != null) {
-                    val photoRequest = FetchPhotoRequest.builder(photoMetadata)
-                        .setMaxWidth(600)
-                        .setMaxHeight(400)
-                        .build()
-                    placesClient.fetchPhoto(photoRequest)
-                        .addOnSuccessListener { fetchPhotoResponse ->
-                            val bitmap = fetchPhotoResponse.bitmap
-                            imageView.setImageBitmap(bitmap)
-                        }
-                        .addOnFailureListener {
-                            Log.d("PLACES", "Error loading photo: ${it.message}")
-                            imageView.setBackgroundColor(resources.getColor(android.R.color.darker_gray))
-                        }
+                val photoMetadatas = place.photoMetadatas
+                if (photoMetadatas != null && photoMetadatas.isNotEmpty()) {
+                    photosRecyclerView.adapter = SalonPhotosAdapter(placesClient, photoMetadatas)
                 } else {
-                    Log.d("PLACES", "No photo metadata for placeId: $placeId")
-                    imageView.setBackgroundColor(resources.getColor(android.R.color.darker_gray))
+                    Log.d("PLACES", "No photos found for placeId: $placeId")
                 }
             }
             .addOnFailureListener {
                 Log.d("PLACES", "Error fetching place details: ${it.message}")
-                imageView.setBackgroundColor(resources.getColor(android.R.color.darker_gray))
-        }
+            }
     }
 
     companion object {

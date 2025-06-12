@@ -7,20 +7,21 @@
     android:padding="16dp"
     android:background="@android:color/white">
 
-    <!-- Placeholder for Images -->
-    <ImageView
-        android:id="@+id/ivSalonPhoto"
+    <!-- Галерея фото -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvSalonPhotos"
         android:layout_width="match_parent"
-        android:layout_height="150dp"
-        android:scaleType="centerCrop"
-        android:layout_marginTop="8dp"
-        android:background="#E0E0E0" />
+        android:layout_height="120dp"
+        android:layout_marginBottom="12dp"
+        android:orientation="horizontal"
+        android:overScrollMode="never"
+        android:scrollbars="horizontal" />
 
     <TextView
         android:id="@+id/tvSalonName"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="16dp"
         android:text="Назва закладу"
         android:textSize="20sp"
         android:textStyle="bold" />

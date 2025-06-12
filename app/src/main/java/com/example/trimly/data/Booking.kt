@@ -4,7 +4,7 @@ import java.io.Serializable
 
 data class Booking(
     val id: Int,
-    val clientId: Int,
+    val userid: Int, // id користувача (клієнта)
     val sessionId: Int,
     val serviceId: Int,
     val establishmentRating: Int? = null,

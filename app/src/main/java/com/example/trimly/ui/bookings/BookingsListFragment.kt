@@ -27,8 +27,8 @@ class BookingsListFragment : Fragment() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         isUpcoming = requireArguments().getBoolean(ARG_UPCOMING)
-        @Suppress("UNCHECKED_CAST")
-        bookings = requireArguments().getSerializable(ARG_LIST) as MutableList<DetailedBooking>
+        @Suppress("DEPRECATION")
+        bookings = (requireArguments().getSerializable(ARG_LIST) as? ArrayList<DetailedBooking>) ?: ArrayList()
     }
 
     fun updateBookings(newBookings: MutableList<DetailedBooking>) {
@@ -37,7 +37,7 @@ class BookingsListFragment : Fragment() {
         val recyclerView = view?.findViewById<RecyclerView>(R.id.recyclerView)
         val currentView = view
         if (recyclerView != null && currentView != null) {
-             updateEmptyState(currentView, recyclerView)
+            updateEmptyState(currentView, recyclerView)
         }
         adapter.notifyDataSetChanged()
     }
@@ -54,13 +54,10 @@ class BookingsListFragment : Fragment() {
         adapter = BookingsAdapter(
             context = requireContext(),
             bookings = bookings,
-            onClick = { detailedBooking ->
-            // Логіка при натисканні на запис, якщо потрібна
-            },
+            onClick = { _ -> /* Логіка при натисканні на запис, якщо потрібна */ },
             showCancelButton = isUpcoming,
             onStatusChange = { bookingId, status ->
-            // Викликаємо метод updateBookingStatus у BookingsFragment
-            (parentFragment as? BookingsFragment)?.updateBookingStatus(bookingId, status)
+                (parentFragment as? BookingsFragment)?.updateBookingStatus(bookingId, status)
             }
         )
         recyclerView.adapter = adapter

@@ -1,0 +1,138 @@
+CREATE TABLE Users (
+    userid INTEGER PRIMARY KEY AUTOINCREMENT,
+    first_name TEXT NOT NULL,
+    last_name TEXT,
+    email TEXT UNIQUE NOT NULL,
+    phone TEXT UNIQUE NOT NULL,
+    role TEXT NOT NULL DEFAULT 'client', -- ENUM замінено на TEXT з CHECK
+    rating REAL DEFAULT 5.0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    CHECK (role IN ('client', 'master', 'admin'))
+);
+
+-- Таблиця закладів
+CREATE TABLE Establishments (
+    establishmentid INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    address TEXT NOT NULL,
+    latitude REAL NOT NULL,
+    longitude REAL NOT NULL,
+    phone_number TEXT,
+    website TEXT,
+    description TEXT,
+    rating REAL DEFAULT 5.0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Таблиця адміністраторів закладів
+CREATE TABLE EstablishmentAdmins (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    userid INTEGER NOT NULL,
+    establishmentid INTEGER NOT NULL,
+    admin_type TEXT DEFAULT 'admin',
+    CHECK (admin_type IN ('admin', 'network_admin')),
+    FOREIGN KEY (userid) REFERENCES Users(userid) ON DELETE CASCADE,
+    FOREIGN KEY (establishmentid) REFERENCES Establishments(establishmentid) ON DELETE CASCADE
+);
+
+-- Таблиця майстрів закладів
+CREATE TABLE EstablishmentMasters (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    userid INTEGER NOT NULL,
+    establishmentid INTEGER NOT NULL,
+    specialization TEXT,
+    portfolio_url TEXT,
+    rating REAL DEFAULT 5.0,
+    FOREIGN KEY (userid) REFERENCES Users(userid) ON DELETE CASCADE,
+    FOREIGN KEY (establishmentid) REFERENCES Establishments(establishmentid) ON DELETE CASCADE
+);
+
+-- Таблиця послуг
+CREATE TABLE Services (
+    serviceid INTEGER PRIMARY KEY AUTOINCREMENT,
+    establishmentid INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    description TEXT,
+    price REAL NOT NULL,
+    duration INTEGER NOT NULL,
+    FOREIGN KEY (establishmentid) REFERENCES Establishments(establishmentid) ON DELETE CASCADE
+);
+
+-- Таблиця сесій майстрів
+CREATE TABLE MasterSessions (
+    sessionid INTEGER PRIMARY KEY AUTOINCREMENT,
+    masterid INTEGER NOT NULL,
+    establishmentid INTEGER NOT NULL,
+    date TEXT NOT NULL, -- TEXT формат (ISO-8601) для дати
+    start_time TEXT NOT NULL, -- TEXT формат часу
+    end_time TEXT NOT NULL,
+    status TEXT DEFAULT 'PENDING',
+    CHECK (status IN ('PENDING', 'CONFIRMED', 'CANCELLED', 'COMPLETED')),
+    FOREIGN KEY (masterid) REFERENCES Users(userid) ON DELETE CASCADE,
+    FOREIGN KEY (establishmentid) REFERENCES Establishments(establishmentid) ON DELETE CASCADE
+);
+
+-- Таблиця записів
+CREATE TABLE Appointments (
+    appointmentid INTEGER PRIMARY KEY AUTOINCREMENT,
+    clientid INTEGER NOT NULL,
+    sessionid INTEGER NOT NULL,
+    serviceid INTEGER NOT NULL,
+    establishmentid INTEGER NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (clientid) REFERENCES Users(userid) ON DELETE CASCADE,
+    FOREIGN KEY (sessionid) REFERENCES MasterSessions(sessionid) ON DELETE CASCADE,
+    FOREIGN KEY (serviceid) REFERENCES Services(serviceid) ON DELETE CASCADE,
+    FOREIGN KEY (establishmentid) REFERENCES Establishments(establishmentid) ON DELETE CASCADE
+);
+
+-- Таблиця відгуків
+CREATE TABLE Reviews (
+    reviewid INTEGER PRIMARY KEY AUTOINCREMENT,
+    clientid INTEGER NOT NULL,
+    establishmentid INTEGER,
+    masterid INTEGER,
+    rating INTEGER CHECK (rating BETWEEN 1 AND 5),
+    comment TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (clientid) REFERENCES Users(userid) ON DELETE CASCADE,
+    FOREIGN KEY (establishmentid) REFERENCES Establishments(establishmentid) ON DELETE SET NULL,
+    FOREIGN KEY (masterid) REFERENCES Users(userid) ON DELETE SET NULL
+);
+
+INSERT INTO Users (first_name, last_name, email, phone, role) VALUES
+('Олена', 'Іваненко', 'olena@example.com', '+380501111111', 'client'),
+('Ігор', 'Петренко', 'ihor@example.com', '+380502222222', 'master'),
+('Марія', 'Коваль', 'maria@example.com', '+380503333333', 'admin');
+
+-- Додаємо заклади
+INSERT INTO Establishments (name, address, latitude, longitude, phone_number, website, description) VALUES
+('Салон Краси \"Люкс\"', 'Київ, вул. Хрещатик, 10', 50.4501, 30.5234, '+380441234567', 'luxsalon.ua', 'Преміум салон краси'),
+('BarberShop \"Чоловічий Стиль\"', 'Львів, просп. Свободи, 5', 49.8429, 24.0317, '+380322345678', 'barberlviv.ua', 'Барбершоп для справжніх чоловіків');
+
+-- Призначаємо адміністраторів закладів
+INSERT INTO EstablishmentAdmins (userid, establishmentid, admin_type) VALUES
+(3, 1, 'admin');
+
+-- Призначаємо майстрів до закладів
+INSERT INTO EstablishmentMasters (userid, establishmentid, specialization, portfolio_url) VALUES
+(2, 1, 'Перукар', 'https://portfolio.com/ihor');
+
+-- Додаємо послуги
+INSERT INTO Services (establishmentid, name, description, price, duration) VALUES
+(1, 'Жіноча стрижка', 'Стрижка для жінок', 400, 60),
+(1, 'Фарбування волосся', 'Професійне фарбування', 800, 120),
+(2, 'Чоловіча стрижка', 'Класична стрижка', 300, 45);
+
+-- Додаємо сесії майстрів
+INSERT INTO MasterSessions (masterid, establishmentid, date, start_time, end_time, status) VALUES
+(2, 1, '2025-06-15', '10:00', '11:00', 'PENDING'),
+(2, 1, '2025-06-15', '11:00', '12:00', 'PENDING');
+
+-- Додаємо записи клієнтів
+INSERT INTO Appointments (clientid, sessionid, serviceid, establishmentid) VALUES
+(1, 1, 1, 1);
+
+-- Додаємо відгук
+INSERT INTO Reviews (clientid, establishmentid, masterid, rating, comment) VALUES
+(1, 1, 2, 5, 'Дуже задоволена сервісом!');

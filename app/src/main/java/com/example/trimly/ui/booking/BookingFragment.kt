@@ -82,7 +82,7 @@ class BookingFragment : Fragment() {
 
         // Load masters and services
         allMasters = masterDao.getMastersByEstablishment(salon.establishmentId)
-        val masterNames = allMasters.map { it.name }
+        val masterNames = allMasters.map { it.firstName + (if (!it.lastName.isNullOrBlank()) " " + it.lastName else "") }
         val masterAdapter = ArrayAdapter(requireContext(), android.R.layout.simple_dropdown_item_1line, masterNames)
         masterAutoCompleteTextView.setAdapter(masterAdapter)
 
@@ -92,17 +92,16 @@ class BookingFragment : Fragment() {
         serviceAutoCompleteTextView.setAdapter(serviceAdapter)
 
         // Set up listener for master selection
-        masterAutoCompleteTextView.onItemClickListener = AdapterView.OnItemClickListener {
-                parent, _, position, _ ->
+        masterAutoCompleteTextView.onItemClickListener = AdapterView.OnItemClickListener { parent, _, position, _ ->
             val selectedMasterName = parent.getItemAtPosition(position).toString()
-            selectedMaster = allMasters.find { it.name == selectedMasterName }
+            selectedMaster = allMasters.find { it.firstName + (if (!it.lastName.isNullOrBlank()) " " + it.lastName else "") == selectedMasterName }
             selectedSession = null
             sessionAutoCompleteTextView.setText("")
             availableSessions = listOf()
             updateSessionDropdown()
 
             selectedMaster?.let {
-                availableSessions = masterDao.getAvailableMasterSessions(it.masterId)
+                availableSessions = masterDao.getAvailableMasterSessions(it.userid, salon.establishmentId)
                 updateSessionDropdown()
             }
         }
@@ -139,21 +138,43 @@ class BookingFragment : Fragment() {
                 return@setOnClickListener
             }
 
-            val currentClientId = 1
+            val prefs = requireContext().getSharedPreferences("auth", android.content.Context.MODE_PRIVATE)
+            val userid = prefs.getInt("userid", -1)
+            if (userid == -1) {
+                Toast.makeText(requireContext(), "Користувач не авторизований", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
 
             val newRowId = bookingDao.addBooking(
-                clientId = currentClientId,
+                clientId = userid,
                 sessionId = selectedSession!!.sessionId,
-                serviceId = selectedService!!.serviceId
+                serviceId = selectedService!!.serviceId,
+                establishmentId = salon.establishmentId
             )
 
             if (newRowId != -1L) {
                 Toast.makeText(requireContext(), "Запис успішно створено!", Toast.LENGTH_SHORT).show()
+                // Ставимо флаг для оновлення записів
+                val prefs = requireContext().getSharedPreferences("booking_update", android.content.Context.MODE_PRIVATE)
+                prefs.edit().putBoolean("should_update_bookings", true).apply()
                 findNavController().popBackStack(R.id.navigation_home, false)
                 (requireActivity() as? AppCompatActivity)?.findViewById<BottomNavigationView>(R.id.bottom_navigation)?.selectedItemId = R.id.navigation_bookings
             } else {
                 Toast.makeText(requireContext(), "Помилка при створенні запису.", Toast.LENGTH_SHORT).show()
             }
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Оновлюємо список сесій, якщо був створений новий запис
+        val prefs = requireContext().getSharedPreferences("booking_update", android.content.Context.MODE_PRIVATE)
+        if (prefs.getBoolean("should_update_bookings", false)) {
+            selectedMaster?.let {
+                availableSessions = masterDao.getAvailableMasterSessions(it.userid, args.salon.establishmentId)
+                updateSessionDropdown()
+            }
+            prefs.edit().putBoolean("should_update_bookings", false).apply()
         }
     }
 

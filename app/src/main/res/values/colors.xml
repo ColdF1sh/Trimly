@@ -14,4 +14,9 @@
     <color name="bottom_nav_icon_inactive">#BDBDBD</color>
     <color name="geo_fab">#7C3AED</color>
     <color name="empty_hint">#BDBDBD</color>
+    <color name="profile_bg">#F6F7FB</color>
+    <color name="profile_text_main">#222B45</color>
+    <color name="profile_text_secondary">#8F9BB3</color>
+    <color name="profile_rating">#FFD600</color>
+    <color name="profile_divider">#E4E9F2</color>
 </resources>

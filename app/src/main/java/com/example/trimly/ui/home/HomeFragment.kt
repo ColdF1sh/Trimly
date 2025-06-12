@@ -28,6 +28,7 @@ import android.widget.EditText
 import android.widget.AutoCompleteTextView
 import android.widget.ArrayAdapter
 import android.view.inputmethod.EditorInfo
+import androidx.activity.result.contract.ActivityResultContracts
 
 data class Salon(val name: String, val lat: Double, val lng: Double, val address: String, val phone: String, val establishmentId: Int) : java.io.Serializable
 
@@ -43,6 +44,26 @@ class HomeFragment : Fragment(), OnMapReadyCallback, OnMarkerClickListener {
     private var allSalons: List<Salon> = listOf()
     private var filteredSalons: List<Salon> = listOf()
 
+    private val locationPermissionRequest = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        when {
+            permissions.getOrDefault(Manifest.permission.ACCESS_FINE_LOCATION, false) -> {
+                locationPermissionGranted = true
+                startLocationUpdates()
+                updateLocationUI()
+            }
+            permissions.getOrDefault(Manifest.permission.ACCESS_COARSE_LOCATION, false) -> {
+                locationPermissionGranted = true
+                startLocationUpdates()
+                updateLocationUI()
+            }
+            else -> {
+                Toast.makeText(requireContext(), "Потрібен доступ до місцезнаходження", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
     private val testSalons = listOf(
         Salon("Тестовий салон 1", 50.4501, 30.5234, "Київ", "", 1), // Приклад координат Києва
         Salon("Тестовий салон 2", 49.8429, 24.0317, "Львів", "", 2), // Приклад координат Львова
@@ -50,7 +71,6 @@ class HomeFragment : Fragment(), OnMapReadyCallback, OnMarkerClickListener {
     )
 
     companion object {
-        private const val LOCATION_PERMISSION_REQUEST_CODE = 1
         private const val DEFAULT_ZOOM = 15f
         private const val LOCATION_REQUEST_INTERVAL = 10000L // 10 seconds
         private const val LOCATION_REQUEST_FASTEST_INTERVAL = 5000L // 5 seconds
@@ -85,7 +105,7 @@ class HomeFragment : Fragment(), OnMapReadyCallback, OnMarkerClickListener {
         }
 
         // При натисканні Enter — переміщення до найближчого закладу з такою назвою
-        searchEditText.setOnEditorActionListener { v, actionId, event ->
+        searchEditText.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_SEARCH || actionId == EditorInfo.IME_ACTION_DONE || actionId == EditorInfo.IME_NULL) {
                 val query = searchEditText.text.toString().trim()
                 if (query.isNotEmpty()) {
@@ -101,6 +121,9 @@ class HomeFragment : Fragment(), OnMapReadyCallback, OnMarkerClickListener {
             override fun onLocationResult(locationResult: LocationResult) {
                 locationResult.lastLocation?.let { location ->
                     lastKnownLocation = location
+                    updateMapLocation()
+                    // Stop location updates once we have a location
+                    stopLocationUpdates()
                 }
             }
         }
@@ -113,44 +136,23 @@ class HomeFragment : Fragment(), OnMapReadyCallback, OnMarkerClickListener {
             updateMapLocation()
         }
 
-        getLocationPermission()
-    }
-
-    private fun getLocationPermission() {
-        if (ContextCompat.checkSelfPermission(
-                requireContext(),
-                Manifest.permission.ACCESS_FINE_LOCATION
-            ) == PackageManager.PERMISSION_GRANTED &&
-            ContextCompat.checkSelfPermission(
-                requireContext(),
+        // Перевірка та запит дозволу на геолокацію одразу при запуску фрагмента
+        if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            locationPermissionRequest.launch(arrayOf(
+                Manifest.permission.ACCESS_FINE_LOCATION,
                 Manifest.permission.ACCESS_COARSE_LOCATION
-            ) == PackageManager.PERMISSION_GRANTED
-        ) {
-            locationPermissionGranted = true
-            startLocationUpdates()
-            updateLocationUI()
+            ))
         } else {
-            ActivityCompat.requestPermissions(
-                requireActivity(),
-                arrayOf(
-                    Manifest.permission.ACCESS_FINE_LOCATION,
-                    Manifest.permission.ACCESS_COARSE_LOCATION
-                ),
-                LOCATION_PERMISSION_REQUEST_CODE
-            )
+            locationPermissionGranted = true
         }
     }
 
     override fun onMapReady(googleMap: GoogleMap) {
         map = googleMap
-        try {
-            updateLocationUI()
-            getDeviceLocation()
-            addSalonsMarkers()
-            map.setOnMarkerClickListener(this)
-        } catch (e: Exception) {
-            Toast.makeText(requireContext(), "Помилка завантаження карти", Toast.LENGTH_LONG).show()
-        }
+        map.setOnMarkerClickListener(this)
+        updateLocationUI()
+        getDeviceLocation()
+        addSalonsMarkers()
     }
 
     private fun addSalonsMarkers() {
@@ -231,27 +233,53 @@ class HomeFragment : Fragment(), OnMapReadyCallback, OnMarkerClickListener {
     private fun getDeviceLocation() {
         try {
             if (locationPermissionGranted) {
-                fusedLocationClient.lastLocation.addOnSuccessListener { location ->
-                    location?.let {
-                        lastKnownLocation = it
+                fusedLocationClient.lastLocation
+                    .addOnSuccessListener { location ->
+                        location?.let {
+                            lastKnownLocation = it
+                            updateMapLocation()
+                        } ?: run {
+                            // If lastLocation is null, request location updates
+                            startLocationUpdates()
+                            Toast.makeText(requireContext(), "Отримання місцезнаходження...", Toast.LENGTH_SHORT).show()
+                        }
                     }
-                }
+                    .addOnFailureListener { e ->
+                        Toast.makeText(requireContext(), "Помилка отримання місцезнаходження: ${e.message}", Toast.LENGTH_LONG).show()
+                    }
+            } else {
+                locationPermissionRequest.launch(arrayOf(
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION
+                ))
             }
         } catch (e: SecurityException) {
-            Toast.makeText(requireContext(), "Error: ${e.message}", Toast.LENGTH_LONG).show()
+            Toast.makeText(requireContext(), "Помилка: ${e.message}", Toast.LENGTH_LONG).show()
         }
     }
 
     private fun updateMapLocation() {
-        if (lastKnownLocation != null) {
-            lastKnownLocation?.let { location ->
+        if (!::map.isInitialized) {
+            Timber.w("Map is not initialized")
+            return
+        }
+        
+        lastKnownLocation?.let { location ->
+            try {
+                val latLng = LatLng(location.latitude, location.longitude)
                 map.animateCamera(
                     CameraUpdateFactory.newLatLngZoom(
-                        LatLng(location.latitude, location.longitude),
+                        latLng,
                         DEFAULT_ZOOM
                     )
                 )
+            } catch (e: Exception) {
+                Timber.e(e, "Error updating map location")
+                Toast.makeText(requireContext(), "Помилка оновлення карти: ${e.message}", Toast.LENGTH_SHORT).show()
             }
+        } ?: run {
+            Timber.w("Location is null")
+            Toast.makeText(requireContext(), "Місцезнаходження недоступне", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -269,46 +297,26 @@ class HomeFragment : Fragment(), OnMapReadyCallback, OnMarkerClickListener {
         }
     }
 
-    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == LOCATION_PERMISSION_REQUEST_CODE) {
-            locationPermissionGranted = grantResults.isNotEmpty() && grantResults.all { it == PackageManager.PERMISSION_GRANTED }
-            if (locationPermissionGranted) {
-                startLocationUpdates()
-                updateLocationUI()
-            }
-        }
-    }
-
     override fun onMarkerClick(marker: Marker): Boolean {
         val salon = marker.tag as? Salon
-        salon?.let {
-            val bottomSheetFragment = SalonDetailsBottomSheetFragment.newInstance(it)
-            bottomSheetFragment.show(childFragmentManager, bottomSheetFragment.tag)
+        if (salon != null) {
+            val bottomSheet = SalonDetailsBottomSheetFragment.newInstance(salon)
+            bottomSheet.show(childFragmentManager, "SalonDetails")
+            return true
         }
-        return true
+        return false
     }
 
-    private fun moveToNearestSalon(name: String) {
-        val salonsWithName = allSalons.filter { it.name.equals(name, ignoreCase = true) }
-        if (salonsWithName.isEmpty()) return
-        val targetSalon = if (salonsWithName.size == 1 || lastKnownLocation == null) {
-            salonsWithName.first()
-        } else {
-            salonsWithName.minByOrNull { salon ->
-                val results = FloatArray(1)
-                android.location.Location.distanceBetween(
-                    lastKnownLocation!!.latitude, lastKnownLocation!!.longitude,
-                    salon.lat, salon.lng, results
+    private fun moveToNearestSalon(query: String) {
+        val matchingSalons = allSalons.filter { it.name.contains(query, ignoreCase = true) }
+        if (matchingSalons.isNotEmpty()) {
+            val nearestSalon = matchingSalons.first()
+            map.animateCamera(
+                CameraUpdateFactory.newLatLngZoom(
+                    LatLng(nearestSalon.lat, nearestSalon.lng),
+                    DEFAULT_ZOOM
                 )
-                results[0]
-            } ?: salonsWithName.first()
-        }
-        map.animateCamera(
-            CameraUpdateFactory.newLatLngZoom(
-                LatLng(targetSalon.lat, targetSalon.lng),
-                DEFAULT_ZOOM
             )
-        )
+        }
     }
 } 

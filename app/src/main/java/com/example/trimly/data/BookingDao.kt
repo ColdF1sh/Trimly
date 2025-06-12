@@ -21,7 +21,7 @@ class BookingDao(context: Context) {
                 A.appointmentid AS id,
                 A.sessionid AS sessionId,
                 (C.first_name || ' ' || IFNULL(C.last_name, '')) AS clientName,
-                (M.first_name || ' ' || IFNULL(M.last_name, '')) AS masterName,
+                (U.first_name || ' ' || IFNULL(U.last_name, '')) AS masterName,
                 E.name AS salonName,
                 S.name AS serviceName,
                 MS.date AS date,
@@ -31,13 +31,15 @@ class BookingDao(context: Context) {
             FROM
                 Appointments AS A
             JOIN
-                Clients AS C ON A.clientid = C.clientid
+                Users AS C ON A.clientid = C.userid
             JOIN
                 MasterSessions AS MS ON A.sessionid = MS.sessionid
             JOIN
-                Masters AS M ON MS.masterid = M.masterid
+                Users AS U ON MS.masterid = U.userid
             JOIN
-                Establishments AS E ON M.establishmentid = E.establishmentid
+                EstablishmentMasters AS EM ON U.userid = EM.userid AND MS.establishmentid = EM.establishmentid
+            JOIN
+                Establishments AS E ON MS.establishmentid = E.establishmentid
             JOIN
                 Services AS S ON A.serviceid = S.serviceid
         """.trimIndent()
@@ -87,12 +89,13 @@ class BookingDao(context: Context) {
     }
 
     // Method to add a new booking using clientId, sessionId, and serviceId
-    fun addBooking(clientId: Int, sessionId: Int, serviceId: Int): Long {
+    fun addBooking(clientId: Int, sessionId: Int, serviceId: Int, establishmentId: Int): Long {
         val values = android.content.ContentValues().apply {
-            put("clientId", clientId)
-            put("sessionId", sessionId)
-            put("serviceId", serviceId)
-            // Status will be set to 'confirmed' by the database trigger/default
+            put("clientid", clientId)
+            put("sessionid", sessionId)
+            put("serviceid", serviceId)
+            put("establishmentid", establishmentId)
+            put("status", BookingStatus.CONFIRMED.name.uppercase(Locale.ROOT))
         }
         val newRowId = dbHelper.insert("Appointments", null, values)
         if (newRowId == -1L) {
@@ -158,6 +161,67 @@ class BookingDao(context: Context) {
         val rowsAffected = dbHelper.update("Appointments", values, "appointmentId = ?", arrayOf(appointmentId.toString()))
         Timber.d("BookingDao", "Оновлено статус для Appointment appointmentId=$appointmentId до $status. Кількість оновлених рядків: $rowsAffected")
         return rowsAffected
+    }
+
+    fun getDetailedBookingsForClient(clientId: Int): List<DetailedBooking> {
+        Timber.d("BookingDao", "Завантаження записів для клієнта $clientId")
+        val detailedBookings = mutableListOf<DetailedBooking>()
+        val query = """
+            SELECT
+                A.appointmentid AS id,
+                A.sessionid AS sessionId,
+                (C.first_name || ' ' || IFNULL(C.last_name, '')) AS clientName,
+                (U.first_name || ' ' || IFNULL(U.last_name, '')) AS masterName,
+                E.name AS salonName,
+                S.name AS serviceName,
+                MS.date AS date,
+                MS.start_time AS startTime,
+                MS.end_time AS endTime,
+                A.status AS status
+            FROM
+                Appointments AS A
+            JOIN
+                Users AS C ON A.clientid = C.userid
+            JOIN
+                MasterSessions AS MS ON A.sessionid = MS.sessionid
+            JOIN
+                Users AS U ON MS.masterid = U.userid
+            JOIN
+                EstablishmentMasters AS EM ON U.userid = EM.userid AND MS.establishmentid = EM.establishmentid
+            JOIN
+                Establishments AS E ON MS.establishmentid = E.establishmentid
+            JOIN
+                Services AS S ON A.serviceid = S.serviceid
+            WHERE
+                A.clientid = ?
+        """.trimIndent()
+        val cursor = dbHelper.rawQuery(query, arrayOf(clientId.toString()))
+        if (cursor.moveToFirst()) {
+            do {
+                val id = cursor.getInt(cursor.getColumnIndexOrThrow("id"))
+                val sessionId = cursor.getInt(cursor.getColumnIndexOrThrow("sessionId"))
+                val clientName = cursor.getString(cursor.getColumnIndexOrThrow("clientName"))
+                val masterName = cursor.getString(cursor.getColumnIndexOrThrow("masterName"))
+                val salonName = cursor.getString(cursor.getColumnIndexOrThrow("salonName"))
+                val serviceName = cursor.getString(cursor.getColumnIndexOrThrow("serviceName"))
+                val date = cursor.getString(cursor.getColumnIndexOrThrow("date"))
+                val startTime = cursor.getString(cursor.getColumnIndexOrThrow("startTime"))
+                val endTime = cursor.getString(cursor.getColumnIndexOrThrow("endTime"))
+                val statusString = cursor.getString(cursor.getColumnIndexOrThrow("status"))
+                val status = try {
+                    BookingStatus.valueOf(statusString.uppercase(Locale.ROOT))
+                } catch (e: Exception) {
+                    BookingStatus.PENDING
+                }
+                detailedBookings.add(DetailedBooking(id, sessionId, clientName, masterName, salonName, serviceName, date, startTime, endTime, status))
+            } while (cursor.moveToNext())
+        }
+        cursor.close()
+        return detailedBookings
+    }
+
+    fun deleteBooking(appointmentId: Int): Int {
+        return dbHelper.delete("Appointments", "appointmentid = ?", arrayOf(appointmentId.toString()))
     }
 }
 
